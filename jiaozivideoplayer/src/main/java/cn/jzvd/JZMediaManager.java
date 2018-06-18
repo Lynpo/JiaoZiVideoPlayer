@@ -5,7 +5,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
-import android.util.Log;
 import android.view.Surface;
 import android.view.TextureView;
 
@@ -27,6 +26,8 @@ public class JZMediaManager implements TextureView.SurfaceTextureListener {
     public JZMediaInterface jzMediaInterface;
     public int currentVideoWidth = 0;
     public int currentVideoHeight = 0;
+    public int currentTextureViewWidth = 0;
+    public int currentTextureViewHeight = 0;
 
     public HandlerThread mMediaHandlerThread;
     public MediaHandler mMediaHandler;
@@ -105,8 +106,15 @@ public class JZMediaManager implements TextureView.SurfaceTextureListener {
     }
 
     @Override
-    public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int i, int i1) {
-        Log.i(TAG, "onSurfaceTextureAvailable [" + JZVideoPlayerManager.getCurrentJzvd().hashCode() + "] ");
+    public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
+        currentTextureViewWidth = width;
+        currentTextureViewHeight = height;
+
+        JZVideoPlayer player = JZVideoPlayerManager.getCurrentJzvd();
+        if (player != null) {
+            player.onSurfaceTextureAvailable(width, height);
+        }
+
         if (savedSurfaceTexture == null) {
             savedSurfaceTexture = surfaceTexture;
             prepare();

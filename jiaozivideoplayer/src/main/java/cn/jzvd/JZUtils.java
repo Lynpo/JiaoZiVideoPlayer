@@ -8,7 +8,6 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.view.ContextThemeWrapper;
-import android.util.Log;
 import android.view.Window;
 
 import java.util.Formatter;
@@ -110,7 +109,7 @@ public class JZUtils {
 
     public static void saveProgress(Context context, Object url, long progress) {
         if (!JZVideoPlayer.SAVE_PROGRESS) return;
-        Log.i(TAG, "saveProgress: " + progress);
+
         if (progress < 5000) {
             progress = 0;
         }

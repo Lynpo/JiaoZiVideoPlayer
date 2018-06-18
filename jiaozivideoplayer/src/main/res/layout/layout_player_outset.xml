@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:background="@android:color/black"
+    android:descendantFocusability="blocksDescendants">
+
+    <ImageView
+        android:id="@+id/thumb"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitCenter" />
+
+    <ImageView
+        android:id="@+id/back"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="16dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/top_close_white" />
+
+    <FrameLayout
+        android:id="@+id/surface_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true">
+    </FrameLayout>
+
+<!--
+    <FrameLayout
+        android:id="@+id/player_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true">
+
+        <include layout="@layout/layout_player_operation" />
+    </FrameLayout>
+-->
+
+    <TextView
+        android:id="@+id/jumpToOpenCourse"
+        android:layout_width="183dp"
+        android:layout_height="47dp"
+        android:layout_centerInParent="true"
+        android:background="@drawable/bg_7c5dc7_50"
+        android:gravity="center"
+        android:layout_below="@id/surface_container"
+        android:layout_marginTop="54dp"
+        android:text="查看完整视频"
+        android:textColor="#ffffff"
+        android:textSize="17sp"
+        android:visibility="visible"
+        tools:visibility="visible"/>
+</RelativeLayout>

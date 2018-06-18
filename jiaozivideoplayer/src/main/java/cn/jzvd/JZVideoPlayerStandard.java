@@ -2,12 +2,8 @@ package cn.jzvd;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.graphics.Color;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -17,16 +13,11 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -39,18 +30,8 @@ public class JZVideoPlayerStandard extends JZVideoPlayer {
     protected static Timer DISMISS_CONTROL_VIEW_TIMER;
 
     public ImageView backButton;
-    public ProgressBar bottomProgressBar, loadingProgressBar;
-    public TextView titleTextView;
+    public ProgressBar /*bottomProgressBar, */loadingProgressBar;
     public ImageView thumbImageView;
-    public ImageView tinyBackImageView;
-    public LinearLayout batteryTimeLayout;
-    public ImageView batteryLevel;
-    public TextView videoCurrentTime;
-    public TextView replayTextView;
-    public TextView clarity;
-    public PopupWindow clarityPopWindow;
-    public TextView mRetryBtn;
-    public LinearLayout mRetryLayout;
 
     protected DismissControlViewTimerTask mDismissControlViewTimerTask;
     protected Dialog mProgressDialog;
@@ -65,22 +46,6 @@ public class JZVideoPlayerStandard extends JZVideoPlayer {
     protected Dialog mBrightnessDialog;
     protected ProgressBar mDialogBrightnessProgressBar;
     protected TextView mDialogBrightnessTextView;
-    public static long LAST_GET_BATTERYLEVEL_TIME = 0;
-    public static int LAST_GET_BATTERYLEVEL_PERCENT = 70;
-
-    private BroadcastReceiver battertReceiver = new BroadcastReceiver() {
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (Intent.ACTION_BATTERY_CHANGED.equals(action)) {
-                int level = intent.getIntExtra("level", 0);
-                int scale = intent.getIntExtra("scale", 100);
-                int percent = level * 100 / scale;
-                LAST_GET_BATTERYLEVEL_PERCENT = percent;
-                setBatteryLevel();
-                getContext().unregisterReceiver(battertReceiver);
-            }
-        }
-    };
 
     public JZVideoPlayerStandard(Context context) {
         super(context);
@@ -93,64 +58,50 @@ public class JZVideoPlayerStandard extends JZVideoPlayer {
     @Override
     public void init(Context context) {
         super.init(context);
-        batteryTimeLayout = findViewById(R.id.battery_time_layout);
-        bottomProgressBar = findViewById(R.id.bottom_progress);
-        titleTextView = findViewById(R.id.title);
-        backButton = findViewById(R.id.back);
-        thumbImageView = findViewById(R.id.thumb);
-        loadingProgressBar = findViewById(R.id.loading);
-        tinyBackImageView = findViewById(R.id.back_tiny);
-        batteryLevel = findViewById(R.id.battery_level);
-        videoCurrentTime = findViewById(R.id.video_current_time);
-        replayTextView = findViewById(R.id.replay_text);
-        clarity = findViewById(R.id.clarity);
-        mRetryBtn = findViewById(R.id.retry_btn);
-        mRetryLayout = findViewById(R.id.retry_layout);
+        if (mVideoView == null) {
+            return;
+        }
+        backButton = mVideoView.findViewById(R.id.back);
+        thumbImageView = mVideoView.findViewById(R.id.thumb);
+        loadingProgressBar = mVideoView.findViewById(R.id.loading);
+
+        showOperationViewByScreenMode();
 
         thumbImageView.setOnClickListener(this);
         backButton.setOnClickListener(this);
-        tinyBackImageView.setOnClickListener(this);
-        clarity.setOnClickListener(this);
-        mRetryBtn.setOnClickListener(this);
     }
 
     public void setUp(Object[] dataSourceObjects, int defaultUrlMapIndex, int screen, Object... objects) {
         super.setUp(dataSourceObjects, defaultUrlMapIndex, screen, objects);
-        if (objects.length != 0) titleTextView.setText(objects[0].toString());
         if (currentScreen == SCREEN_WINDOW_FULLSCREEN) {
-            fullscreenButton.setImageResource(R.drawable.jz_shrink);
+            setFullScreenImage(true);
             backButton.setVisibility(View.VISIBLE);
-            tinyBackImageView.setVisibility(View.INVISIBLE);
-            batteryTimeLayout.setVisibility(View.VISIBLE);
-            if (((LinkedHashMap) dataSourceObjects[0]).size() == 1) {
-                clarity.setVisibility(GONE);
-            } else {
-                clarity.setText(JZUtils.getKeyFromDataSource(dataSourceObjects, currentUrlMapIndex));
-                clarity.setVisibility(View.VISIBLE);
-            }
             changeStartButtonSize((int) getResources().getDimension(R.dimen.jz_start_button_w_h_fullscreen));
         } else if (currentScreen == SCREEN_WINDOW_NORMAL
                 || currentScreen == SCREEN_WINDOW_LIST) {
-            fullscreenButton.setImageResource(R.drawable.jz_enlarge);
+            setFullScreenImage(false);
             backButton.setVisibility(View.GONE);
-            tinyBackImageView.setVisibility(View.INVISIBLE);
             changeStartButtonSize((int) getResources().getDimension(R.dimen.jz_start_button_w_h_normal));
-            batteryTimeLayout.setVisibility(View.GONE);
-            clarity.setVisibility(View.GONE);
         } else if (currentScreen == SCREEN_WINDOW_TINY) {
-            tinyBackImageView.setVisibility(View.VISIBLE);
             setAllControlsVisiblity(View.INVISIBLE, View.INVISIBLE, View.INVISIBLE,
                     View.INVISIBLE, View.INVISIBLE, View.INVISIBLE, View.INVISIBLE);
-            batteryTimeLayout.setVisibility(View.GONE);
-            clarity.setVisibility(View.GONE);
         }
-        setSystemTimeAndBattery();
-
 
         if (tmp_test_back) {
             tmp_test_back = false;
             JZVideoPlayerManager.setFirstFloor(this);
             backPress();
+        }
+    }
+
+    @Override
+    protected void setFullScreenImage(boolean full) {
+        super.setFullScreenImage(full);
+
+        if (full) {
+            fullscreenButton.setImageResource(R.drawable.full_screen);
+        } else {
+            fullscreenButton.setImageResource(R.drawable.half_screen);
         }
     }
 
@@ -211,11 +162,14 @@ public class JZVideoPlayerStandard extends JZVideoPlayer {
         super.onStateAutoComplete();
         changeUiToComplete();
         cancelDismissControlViewTimer();
-        bottomProgressBar.setProgress(100);
+//        bottomProgressBar.setProgress(100);
     }
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
+        if (mScreenMode == ScreenMode.LIST) {
+            return super.onTouch(v, event);
+        }
         int id = v.getId();
         if (id == R.id.surface_container) {
             switch (event.getAction()) {
@@ -225,11 +179,11 @@ public class JZVideoPlayerStandard extends JZVideoPlayer {
                     break;
                 case MotionEvent.ACTION_UP:
                     startDismissControlViewTimer();
-                    if (mChangePosition) {
-                        long duration = getDuration();
-                        int progress = (int) (mSeekTimePosition * 100 / (duration == 0 ? 1 : duration));
-                        bottomProgressBar.setProgress(progress);
-                    }
+//                    if (mChangePosition) {
+//                        long duration = getDuration();
+//                        int progress = (int) (mSeekTimePosition * 100 / (duration == 0 ? 1 : duration));
+//                        bottomProgressBar.setProgress(progress);
+//                    }
                     if (!mChangePosition && !mChangeVolume) {
                         onEvent(JZUserActionStandard.ON_CLICK_BLANK);
                         onClickUiToggle();
@@ -247,6 +201,10 @@ public class JZVideoPlayerStandard extends JZVideoPlayer {
             }
         }
         return super.onTouch(v, event);
+    }
+
+    public void clickStart() {
+        startButton.performClick();
     }
 
     @Override
@@ -271,74 +229,32 @@ public class JZVideoPlayerStandard extends JZVideoPlayer {
                 onClickUiToggle();
             }
         } else if (i == R.id.surface_container) {
-            startDismissControlViewTimer();
+            if (getScreenMode() == ScreenMode.LIST) {
+                jumpToWindowPlay();
+                setScreenMode(ScreenMode.PORTRAIT);
+            } else {
+                startDismissControlViewTimer();
+            }
         } else if (i == R.id.back) {
             backPress();
-        } else if (i == R.id.back_tiny) {
-            if (JZVideoPlayerManager.getFirstFloor().currentScreen == JZVideoPlayer.SCREEN_WINDOW_LIST) {
-                quitFullscreenOrTinyWindow();
-            } else {
-                backPress();
-            }
-        } else if (i == R.id.clarity) {
-            LayoutInflater inflater = (LayoutInflater) getContext()
-                    .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            final LinearLayout layout = (LinearLayout) inflater.inflate(R.layout.jz_layout_clarity, null);
+            setScreenMode(ScreenMode.LIST);
+        }
 
-            OnClickListener mQualityListener = new OnClickListener() {
-                public void onClick(View v) {
-                    int index = (int) v.getTag();
-                    onStatePreparingChangingUrl(index, getCurrentPositionWhenPlaying());
-                    clarity.setText(JZUtils.getKeyFromDataSource(dataSourceObjects, currentUrlMapIndex));
-                    for (int j = 0; j < layout.getChildCount(); j++) {//设置点击之后的颜色
-                        if (j == currentUrlMapIndex) {
-                            ((TextView) layout.getChildAt(j)).setTextColor(Color.parseColor("#fff85959"));
-                        } else {
-                            ((TextView) layout.getChildAt(j)).setTextColor(Color.parseColor("#ffffff"));
-                        }
-                    }
-                    if (clarityPopWindow != null) {
-                        clarityPopWindow.dismiss();
-                    }
-                }
-            };
+        showOperationViewByScreenMode();
+    }
 
-            for (int j = 0; j < ((LinkedHashMap) dataSourceObjects[0]).size(); j++) {
-                String key = JZUtils.getKeyFromDataSource(dataSourceObjects, j);
-                TextView clarityItem = (TextView) View.inflate(getContext(), R.layout.jz_layout_clarity_item, null);
-                clarityItem.setText(key);
-                clarityItem.setTag(j);
-                layout.addView(clarityItem, j);
-                clarityItem.setOnClickListener(mQualityListener);
-                if (j == currentUrlMapIndex) {
-                    clarityItem.setTextColor(Color.parseColor("#fff85959"));
-                }
-            }
+    @Override
+    protected void showOperationViewByScreenMode() {
+        super.showOperationViewByScreenMode();
 
-            clarityPopWindow = new PopupWindow(layout, LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, true);
-            clarityPopWindow.setContentView(layout);
-            clarityPopWindow.showAsDropDown(clarity);
-            layout.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-            int offsetX = clarity.getMeasuredWidth() / 3;
-            int offsetY = clarity.getMeasuredHeight() / 3;
-            clarityPopWindow.update(clarity, - offsetX, - offsetY, Math.round(layout.getMeasuredWidth() * 2), layout.getMeasuredHeight());
-        } else if (i == R.id.retry_btn) {
-            if (dataSourceObjects == null || JZUtils.getCurrentFromDataSource(dataSourceObjects, currentUrlMapIndex) == null) {
-                Toast.makeText(getContext(), getResources().getString(R.string.no_url), Toast.LENGTH_SHORT).show();
-                return;
-            }
-            if (!JZUtils.getCurrentFromDataSource(dataSourceObjects, currentUrlMapIndex).toString().startsWith("file") && !
-                    JZUtils.getCurrentFromDataSource(dataSourceObjects, currentUrlMapIndex).toString().startsWith("/") &&
-                    !JZUtils.isWifiConnected(getContext()) && !WIFI_TIP_DIALOG_SHOWED) {
-                showWifiDialog();
-                return;
-            }
-            initTextureView();//和开始播放的代码重复
-            addTextureView();
-            JZMediaManager.setDataSource(dataSourceObjects);
-            JZMediaManager.setCurrentDataSource(JZUtils.getCurrentFromDataSource(dataSourceObjects, currentUrlMapIndex));
-            onStatePreparing();
-            onEvent(JZUserAction.ON_CLICK_START_ERROR);
+        switch (mScreenMode) {
+            case LIST:
+                backButton.setVisibility(GONE);
+                break;
+            case PORTRAIT:
+            case LANDSCAPE:
+                backButton.setVisibility(VISIBLE);
+                break;
         }
     }
 
@@ -389,15 +305,10 @@ public class JZVideoPlayerStandard extends JZVideoPlayer {
     }
 
     public void onClickUiToggle() {
-        if (bottomContainer.getVisibility() != View.VISIBLE) {
-            setSystemTimeAndBattery();
-            clarity.setText(JZUtils.getKeyFromDataSource(dataSourceObjects, currentUrlMapIndex));
-        }
         if (currentState == CURRENT_STATE_PREPARING) {
             changeUiToPreparing();
             if (bottomContainer.getVisibility() == View.VISIBLE) {
             } else {
-                setSystemTimeAndBattery();
             }
         } else if (currentState == CURRENT_STATE_PLAYING) {
             if (bottomContainer.getVisibility() == View.VISIBLE) {
@@ -411,38 +322,6 @@ public class JZVideoPlayerStandard extends JZVideoPlayer {
             } else {
                 changeUiToPauseShow();
             }
-        }
-    }
-
-    public void setSystemTimeAndBattery() {
-        SimpleDateFormat dateFormater = new SimpleDateFormat("HH:mm");
-        Date date = new Date();
-        videoCurrentTime.setText(dateFormater.format(date));
-        if ((System.currentTimeMillis() - LAST_GET_BATTERYLEVEL_TIME) > 30000) {
-            LAST_GET_BATTERYLEVEL_TIME = System.currentTimeMillis();
-            getContext().registerReceiver(
-                    battertReceiver,
-                    new IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-            );
-        } else {
-            setBatteryLevel();
-        }
-    }
-
-    public void setBatteryLevel() {
-        int percent = LAST_GET_BATTERYLEVEL_PERCENT;
-        if (percent < 15) {
-            batteryLevel.setBackgroundResource(R.drawable.jz_battery_level_10);
-        } else if (percent >= 15 && percent < 40) {
-            batteryLevel.setBackgroundResource(R.drawable.jz_battery_level_30);
-        } else if (percent >= 40 && percent < 60) {
-            batteryLevel.setBackgroundResource(R.drawable.jz_battery_level_50);
-        } else if (percent >= 60 && percent < 80) {
-            batteryLevel.setBackgroundResource(R.drawable.jz_battery_level_70);
-        } else if (percent >= 80 && percent < 95) {
-            batteryLevel.setBackgroundResource(R.drawable.jz_battery_level_90);
-        } else if (percent >= 95 && percent <= 100) {
-            batteryLevel.setBackgroundResource(R.drawable.jz_battery_level_100);
         }
     }
 
@@ -473,20 +352,20 @@ public class JZVideoPlayerStandard extends JZVideoPlayer {
     @Override
     public void setProgressAndText(int progress, long position, long duration) {
         super.setProgressAndText(progress, position, duration);
-        if (progress != 0) bottomProgressBar.setProgress(progress);
+//        if (progress != 0) bottomProgressBar.setProgress(progress);
     }
 
     @Override
     public void setBufferProgress(int bufferProgress) {
         super.setBufferProgress(bufferProgress);
-        if (bufferProgress != 0) bottomProgressBar.setSecondaryProgress(bufferProgress);
+//        if (bufferProgress != 0) bottomProgressBar.setSecondaryProgress(bufferProgress);
     }
 
     @Override
     public void resetProgressAndTime() {
         super.resetProgressAndTime();
-        bottomProgressBar.setProgress(0);
-        bottomProgressBar.setSecondaryProgress(0);
+//        bottomProgressBar.setProgress(0);
+//        bottomProgressBar.setSecondaryProgress(0);
     }
 
     public void changeUiToNormal() {
@@ -637,30 +516,26 @@ public class JZVideoPlayerStandard extends JZVideoPlayer {
 
     public void setAllControlsVisiblity(int topCon, int bottomCon, int startBtn, int loadingPro,
                                         int thumbImg, int bottomPro, int retryLayout) {
-        topContainer.setVisibility(topCon);
+//        topContainer.setVisibility(topCon);
+        backButton.setVisibility(bottomCon);
         bottomContainer.setVisibility(bottomCon);
         startButton.setVisibility(startBtn);
         loadingProgressBar.setVisibility(loadingPro);
         thumbImageView.setVisibility(thumbImg);
-        bottomProgressBar.setVisibility(bottomPro);
-        mRetryLayout.setVisibility(retryLayout);
+//        bottomProgressBar.setVisibility(bottomPro);
     }
 
     public void updateStartImage() {
         if (currentState == CURRENT_STATE_PLAYING) {
             startButton.setVisibility(VISIBLE);
             startButton.setImageResource(R.drawable.jz_click_pause_selector);
-            replayTextView.setVisibility(INVISIBLE);
         } else if (currentState == CURRENT_STATE_ERROR) {
             startButton.setVisibility(INVISIBLE);
-            replayTextView.setVisibility(INVISIBLE);
         } else if (currentState == CURRENT_STATE_AUTO_COMPLETE) {
             startButton.setVisibility(VISIBLE);
             startButton.setImageResource(R.drawable.jz_click_replay_selector);
-            replayTextView.setVisibility(VISIBLE);
         } else {
             startButton.setImageResource(R.drawable.jz_click_play_selector);
-            replayTextView.setVisibility(INVISIBLE);
         }
     }
 
@@ -805,9 +680,6 @@ public class JZVideoPlayerStandard extends JZVideoPlayer {
     public void onCompletion() {
         super.onCompletion();
         cancelDismissControlViewTimer();
-        if (clarityPopWindow != null) {
-            clarityPopWindow.dismiss();
-        }
     }
 
     public void dissmissControlView() {
@@ -818,13 +690,10 @@ public class JZVideoPlayerStandard extends JZVideoPlayer {
                 @Override
                 public void run() {
                     bottomContainer.setVisibility(View.INVISIBLE);
-                    topContainer.setVisibility(View.INVISIBLE);
+                    backButton.setVisibility(View.INVISIBLE);
                     startButton.setVisibility(View.INVISIBLE);
-                    if (clarityPopWindow != null) {
-                        clarityPopWindow.dismiss();
-                    }
                     if (currentScreen != SCREEN_WINDOW_TINY) {
-                        bottomProgressBar.setVisibility(View.VISIBLE);
+//                        bottomProgressBar.setVisibility(View.VISIBLE);
                     }
                 }
             });
